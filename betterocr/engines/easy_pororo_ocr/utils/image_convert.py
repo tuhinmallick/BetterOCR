@@ -36,6 +36,4 @@ def crop(image, points):
     # add the white background
     bg = np.ones_like(croped, np.uint8) * 255
     cv2.bitwise_not(bg, bg, mask=mask)
-    result = bg + dst
-
-    return result
+    return bg + dst

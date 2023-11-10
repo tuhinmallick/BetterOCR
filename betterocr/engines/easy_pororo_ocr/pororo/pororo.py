@@ -66,10 +66,7 @@ class Pororo:
     ) -> PororoTaskBase:
         if task not in SUPPORTED_TASKS:
             raise KeyError(
-                "Unknown task {}, available tasks are {}".format(
-                    task,
-                    list(SUPPORTED_TASKS.keys()),
-                )
+                f"Unknown task {task}, available tasks are {list(SUPPORTED_TASKS.keys())}"
             )
 
         lang = lang.lower()
@@ -78,15 +75,12 @@ class Pororo:
         # Get device information from torch API
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # Instantiate task-specific pipeline module, if possible
-        task_module = SUPPORTED_TASKS[task](
+        return SUPPORTED_TASKS[task](
             task,
             lang,
             model,
             **kwargs,
         ).load(device)
-
-        return task_module
 
     @staticmethod
     def available_tasks() -> str:
@@ -97,7 +91,7 @@ class Pororo:
             str: Supported task names
 
         """
-        return "Available tasks are {}".format(list(SUPPORTED_TASKS.keys()))
+        return f"Available tasks are {list(SUPPORTED_TASKS.keys())}"
 
     @staticmethod
     def available_models(task: str) -> str:
@@ -116,9 +110,7 @@ class Pororo:
         """
         if task not in SUPPORTED_TASKS:
             raise KeyError(
-                "Unknown task {} ! Please check available models via `available_tasks()`".format(
-                    task
-                )
+                f"Unknown task {task} ! Please check available models via `available_tasks()`"
             )
 
         langs = SUPPORTED_TASKS[task].get_available_models()

@@ -52,9 +52,7 @@ def job_tesseract_boxes(_options):
         for left, top, width, height in words_per_line[
             ["left", "top", "width", "height"]
         ].values:
-            word_boxes.append((left, top))
-            word_boxes.append((left + width, top + height))
-
+            word_boxes.extend(((left, top), (left + width, top + height)))
         x, y, w, h = cv2.boundingRect(np.array(word_boxes))
         boxes.append(
             {

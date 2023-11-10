@@ -129,8 +129,8 @@ class PororoBiencoderBase(PororoTaskBase):
         **kwargs,
     ):
         assert isinstance(sent_a, str), "sent_a should be string type"
-        assert isinstance(sent_b, str) or isinstance(
-            sent_b, list
+        assert isinstance(
+            sent_b, (str, list)
         ), "sent_b should be string or list of string type"
 
         sent_a = self._normalize(sent_a)

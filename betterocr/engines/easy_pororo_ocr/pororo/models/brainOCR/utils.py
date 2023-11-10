@@ -43,10 +43,7 @@ def word_segmentation(
     start_idx = 0
     sep_lang = ""
     for sep_idx in separator_idx_list:
-        if sep_idx % 2 == 0:
-            mode = "first"
-        else:
-            mode = "last"
+        mode = "first" if sep_idx % 2 == 0 else "last"
         a = consecutive(np.argwhere(mat == sep_idx).flatten(), mode)
         new_sep = [[item, sep_idx] for item in a]
         sep_list += new_sep
@@ -120,22 +117,18 @@ class BeamState:
 
         for j, candidate in enumerate(sortedBeams):
             idx_list = candidate.labeling
-            text = ""
-            for i, l in enumerate(idx_list):
-                if l not in ignore_idx and (
-                    not (i > 0 and idx_list[i - 1] == idx_list[i])
-                ):
-                    text += classes[l]
-
+            text = "".join(
+                classes[l]
+                for i, l in enumerate(idx_list)
+                if l not in ignore_idx
+                and (i <= 0 or idx_list[i - 1] != idx_list[i])
+            )
             if j == 0:
                 best_text = text
             if text in dict_list:
                 # print('found text: ', text)
                 best_text = text
                 break
-            else:
-                pass
-                # print('not in dict: ', text)
         return best_text
 
 
@@ -151,7 +144,7 @@ def applyLM(parentBeam, childBeam, classes, lm_model, lm_factor: float = 0.01):
         if current_char == "[blank]":
             lmProb = 1
         else:
-            text = history + " " + current_char
+            text = f"{history} {current_char}"
             lmProb = 10 ** lm_model.score(text, bos=True) * lm_factor
 
         childBeam.prText = lmProb  # probability of char sequence
@@ -208,7 +201,7 @@ def ctcBeamSearch(
         # print("t=", t)
         curr = BeamState()
         # get beam-labelings of best beams
-        bestLabelings = last.sort()[0:beam_width]
+        bestLabelings = last.sort()[:beam_width]
         # go over best beams
         for labeling in bestLabelings:
             # print("labeling:", labeling)
@@ -282,13 +275,12 @@ def ctcBeamSearch(
     last.norm()
 
     bestLabeling = last.sort()[0]  # get most probable labeling
-    res = ""
-    for i, l in enumerate(bestLabeling):
-        # removing repeated characters and blank.
-        if l != ignore_idx and (not (i > 0 and bestLabeling[i - 1] == bestLabeling[i])):
-            res += classes[l]
-
-    return res
+    return "".join(
+        classes[l]
+        for i, l in enumerate(bestLabeling)
+        if l != ignore_idx
+        and (i <= 0 or bestLabeling[i - 1] != bestLabeling[i])
+    )
 
 
 class CTCLabelConverter(object):
@@ -296,7 +288,7 @@ class CTCLabelConverter(object):
 
     def __init__(self, vocab: list):
         self.char2idx = {char: idx for idx, char in enumerate(vocab)}
-        self.idx2char = {idx: char for idx, char in enumerate(vocab)}
+        self.idx2char = dict(enumerate(vocab))
         self.ignored_index = 0
         self.vocab = vocab
 
@@ -328,12 +320,12 @@ class CTCLabelConverter(object):
         for length in lengths:
             text = indices[index : index + length]
 
-            chars = []
-            for i in range(length):
-                if (text[i] != self.ignored_index) and (
-                    not (i > 0 and text[i - 1] == text[i])
-                ):  # removing repeated characters and blank (and separator).
-                    chars.append(self.idx2char[text[i].item()])
+            chars = [
+                self.idx2char[text[i].item()]
+                for i in range(length)
+                if text[i] != self.ignored_index
+                and (i <= 0 or text[i - 1] != text[i])
+            ]
             texts.append("".join(chars))
             index += length
         return texts
@@ -374,9 +366,7 @@ def four_point_transform(image, rect):
 
     # compute the perspective transform matrix and then apply it
     M = cv2.getPerspectiveTransform(rect, dst)
-    warped = cv2.warpPerspective(image, M, (maxWidth, maxHeight))
-
-    return warped
+    return cv2.warpPerspective(image, M, (maxWidth, maxHeight))
 
 
 def group_text_box(
@@ -431,19 +421,17 @@ def group_text_box(
             b_height = [poly[5]]
             b_ycenter = [poly[4]]
             new_box.append(poly)
-        else:
-            # comparable height and comparable y_center level up to ths*height
-            if (abs(np.mean(b_height) - poly[5]) < height_ths * np.mean(b_height)) and (
+        elif (abs(np.mean(b_height) - poly[5]) < height_ths * np.mean(b_height)) and (
                 abs(np.mean(b_ycenter) - poly[4]) < ycenter_ths * np.mean(b_height)
             ):
-                b_height.append(poly[5])
-                b_ycenter.append(poly[4])
-                new_box.append(poly)
-            else:
-                b_height = [poly[5]]
-                b_ycenter = [poly[4]]
-                combined_list.append(new_box)
-                new_box = [poly]
+            b_height.append(poly[5])
+            b_ycenter.append(poly[4])
+            new_box.append(poly)
+        else:
+            b_height = [poly[5]]
+            b_ycenter = [poly[4]]
+            combined_list.append(new_box)
+            new_box = [poly]
     combined_list.append(new_box)
 
     # merge list use sort again
@@ -459,19 +447,16 @@ def group_text_box(
 
             merged_box, new_box = [], []
             for box in boxes:
+                x_max = box[1]
                 if len(new_box) == 0:
-                    x_max = box[1]
                     new_box.append(box)
-                else:
-                    if abs(box[0] - x_max) < width_ths * (
+                elif abs(box[0] - x_max) < width_ths * (
                         box[3] - box[2]
                     ):  # merge boxes
-                        x_max = box[1]
-                        new_box.append(box)
-                    else:
-                        x_max = box[1]
-                        merged_box.append(new_box)
-                        new_box = [box]
+                    new_box.append(box)
+                else:
+                    merged_box.append(new_box)
+                    new_box = [box]
             if len(new_box) > 0:
                 merged_box.append(new_box)
 

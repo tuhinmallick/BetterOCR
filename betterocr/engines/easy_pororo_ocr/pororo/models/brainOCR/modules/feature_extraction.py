@@ -17,11 +17,11 @@ class VGGFeatureExtractor(nn.Module):
         super(VGGFeatureExtractor, self).__init__()
 
         self.output_channel = [
-            int(n_output_channels / 8),
-            int(n_output_channels / 4),
-            int(n_output_channels / 2),
+            n_output_channels // 8,
+            n_output_channels // 4,
+            n_output_channels // 2,
             n_output_channels,
-        ]  # [64, 128, 256, 512]
+        ]
 
         rec_model_ckpt_fp = opt2val["rec_model_ckpt_fp"]
         if "baseline" in rec_model_ckpt_fp:
@@ -157,24 +157,24 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
 
         self.output_channel_blocks = [
-            int(n_output_channels / 4),
-            int(n_output_channels / 2),
+            n_output_channels // 4,
+            n_output_channels // 2,
             n_output_channels,
             n_output_channels,
         ]
 
-        self.inplanes = int(n_output_channels / 8)
+        self.inplanes = n_output_channels // 8
         self.conv0_1 = nn.Conv2d(
             n_input_channels,
-            int(n_output_channels / 16),
+            n_output_channels // 16,
             kernel_size=3,
             stride=1,
             padding=1,
             bias=False,
         )
-        self.bn0_1 = nn.BatchNorm2d(int(n_output_channels / 16))
+        self.bn0_1 = nn.BatchNorm2d(n_output_channels // 16)
         self.conv0_2 = nn.Conv2d(
-            int(n_output_channels / 16),
+            n_output_channels // 16,
             self.inplanes,
             kernel_size=3,
             stride=1,
@@ -260,12 +260,9 @@ class ResNet(nn.Module):
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers = [block(self.inplanes, planes, stride, downsample)]
         self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
-
+        layers.extend(block(self.inplanes, planes) for _ in range(1, blocks))
         return nn.Sequential(*layers)
 
     def forward(self, x):

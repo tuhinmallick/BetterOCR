@@ -2,12 +2,8 @@ from ..engines.easy_pororo_ocr import EasyPororoOcr, load_with_filter
 
 
 def parse_languages(lang: list[str]):
-    languages = []
-    for l in lang:
-        if l in ["ko", "en"]:
-            languages.append(l)
-
-    if len(languages) == 0:
+    languages = [l for l in lang if l in ["ko", "en"]]
+    if not languages:
         languages = ["ko"]
 
     return languages
