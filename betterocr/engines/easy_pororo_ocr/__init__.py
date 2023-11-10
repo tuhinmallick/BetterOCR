@@ -99,7 +99,7 @@ class EasyPororoOcr(BaseOcr):
             )
         )
 
-        if len(self.ocr_result) != 0:
+        if self.ocr_result:
             ocr_text = list(map(lambda result: result[1], self.ocr_result))
         else:
             ocr_text = "No text detected."

@@ -36,14 +36,12 @@ def postprocess_span(tagger, text: str) -> str:
     if text.count("(") == text.count(")") + 1:
         text += ")"
     elif text.count("(") + 1 == text.count(")"):
-        text = "(" + text
+        text = f"({text}"
 
     # Preserve beginning tokens since we only want to extract noun phrase of the last eojeol
     noun_phrase = " ".join(text.rsplit(" ", 1)[:-1])
     tokens = text.split(" ")
-    eojeols = list()
-    for token in tokens:
-        eojeols.append(tagger.pos(token))
+    eojeols = [tagger.pos(token) for token in tokens]
     last_eojeol = eojeols[-1]
 
     # Iterate backwardly to remove unnecessary postfixes
@@ -58,7 +56,7 @@ def postprocess_span(tagger, text: str) -> str:
 
     # Extract noun span from last eojeol and postpend it to beginning tokens
     ext_last_eojeol = "".join(morph for morph, _ in last_eojeol[:idx])
-    noun_phrase += " " + ext_last_eojeol
+    noun_phrase += f" {ext_last_eojeol}"
     return noun_phrase.strip()
 
 

@@ -54,7 +54,6 @@ def get_jobs(languages: list[str], boxes=False):
             print(
                 "[!] Pororo dependencies is not installed. Skipping Pororo (EasyPororoOCR)."
             )
-            pass
     return jobs
 
 

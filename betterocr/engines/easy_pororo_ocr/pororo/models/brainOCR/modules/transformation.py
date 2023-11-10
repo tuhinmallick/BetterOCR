@@ -43,12 +43,7 @@ class TpsSpatialTransformerNetwork(nn.Module):
             [build_P_prime.size(0), self.I_r_size[0], self.I_r_size[1], 2]
         )
 
-        # if torch.__version__ > "1.2.0":
-        #     batch_I_r = F.grid_sample(batch_I, build_P_prime_reshape, padding_mode='border', align_corners=True)
-        # else:
-        batch_I_r = F.grid_sample(batch_I, build_P_prime_reshape, padding_mode="border")
-
-        return batch_I_r
+        return F.grid_sample(batch_I, build_P_prime_reshape, padding_mode="border")
 
 
 class LocalizationNetwork(nn.Module):
@@ -108,10 +103,9 @@ class LocalizationNetwork(nn.Module):
         """
         batch_size = batch_I.size(0)
         features = self.conv(batch_I).view(batch_size, -1)
-        batch_C_prime = self.localization_fc2(self.localization_fc1(features)).view(
+        return self.localization_fc2(self.localization_fc1(features)).view(
             batch_size, self.F, 2
         )
-        return batch_C_prime
 
 
 class GridGenerator(nn.Module):
@@ -141,8 +135,7 @@ class GridGenerator(nn.Module):
         ctrl_pts_y_bottom = np.ones(int(F / 2))
         ctrl_pts_top = np.stack([ctrl_pts_x, ctrl_pts_y_top], axis=1)
         ctrl_pts_bottom = np.stack([ctrl_pts_x, ctrl_pts_y_bottom], axis=1)
-        C = np.concatenate([ctrl_pts_top, ctrl_pts_bottom], axis=0)
-        return C  # F x 2
+        return np.concatenate([ctrl_pts_top, ctrl_pts_bottom], axis=0)
 
     def _build_inv_delta_C(self, F, C):
         """Return inv_delta_C which is needed to calculate T"""
@@ -163,8 +156,7 @@ class GridGenerator(nn.Module):
             ],
             axis=0,
         )
-        inv_delta_C = np.linalg.inv(delta_C)
-        return inv_delta_C  # F+3 x F+3
+        return np.linalg.inv(delta_C)
 
     def _build_P(self, I_r_width, I_r_height):
         I_r_grid_x = (
@@ -187,8 +179,7 @@ class GridGenerator(nn.Module):
         P_diff = P_tile - C_tile  # n x F x 2
         rbf_norm = np.linalg.norm(P_diff, ord=2, axis=2, keepdims=False)  # n x F
         rbf = np.multiply(np.square(rbf_norm), np.log(rbf_norm + self.eps))  # n x F
-        P_hat = np.concatenate([np.ones((n, 1)), P, rbf], axis=1)
-        return P_hat  # n x F+3
+        return np.concatenate([np.ones((n, 1)), P, rbf], axis=1)
 
     def build_P_prime(self, batch_C_prime):
         """Generate Grid from batch_C_prime [batch_size x F x 2]"""
@@ -201,5 +192,4 @@ class GridGenerator(nn.Module):
         batch_T = torch.bmm(
             batch_inv_delta_C, batch_C_prime_with_zeros
         )  # batch_size x F+3 x 2
-        batch_P_prime = torch.bmm(batch_P_hat, batch_T)  # batch_size x n x 2
-        return batch_P_prime  # batch_size x n x 2
+        return torch.bmm(batch_P_hat, batch_T)

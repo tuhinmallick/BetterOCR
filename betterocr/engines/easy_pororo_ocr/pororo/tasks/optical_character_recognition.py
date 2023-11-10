@@ -140,22 +140,16 @@ class PororoOCR(PororoSimpleBase):
         if not detail:
             return [sorted_ocr_results[i][-1] for i in range(len(sorted_ocr_results))]
 
-        result_dict = {
-            "description": list(),
-            "bounding_poly": list(),
-        }
+        result_dict = {"description": [], "bounding_poly": []}
 
         for ocr_result in sorted_ocr_results:
-            vertices = list()
-
-            for vertice in ocr_result[0]:
-                vertices.append(
-                    {
-                        "x": vertice[0],
-                        "y": vertice[1],
-                    }
-                )
-
+            vertices = [
+                {
+                    "x": vertice[0],
+                    "y": vertice[1],
+                }
+                for vertice in ocr_result[0]
+            ]
             result_dict["description"].append(ocr_result[1])
             result_dict["bounding_poly"].append(
                 {"description": ocr_result[1], "vertices": vertices}

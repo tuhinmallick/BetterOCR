@@ -84,10 +84,7 @@ class Reader(object):
     @staticmethod
     def build_vocab(character: str) -> List[str]:
         """Returns vocabulary (=list of characters)"""
-        vocab = ["[blank]"] + list(
-            character
-        )  # dummy '[blank]' token for CTCLoss (index 0)
-        return vocab
+        return ["[blank]"] + list(character)
 
     def detect(self, img: np.ndarray, opt2val: dict):
         """
@@ -105,8 +102,7 @@ class Reader(object):
             opt2val["add_margin"],
         )
 
-        min_size = opt2val["min_size"]
-        if min_size:
+        if min_size := opt2val["min_size"]:
             horizontal_list = [
                 i for i in horizontal_list if max(i[1] - i[0], i[3] - i[2]) > min_size
             ]
@@ -167,10 +163,7 @@ class Reader(object):
         if paragraph:
             result = get_paragraph(result, mode="ltr")
 
-        if skip_details:  # texts only
-            return [item[1] for item in result]
-        else:  # full outputs: bounding box, text and confident score
-            return result
+        return [item[1] for item in result] if skip_details else result
 
     def __call__(
         self,
@@ -240,11 +233,9 @@ class Reader(object):
         img, img_cv_grey = reformat_input(image)  # img, img_cv_grey: array
 
         horizontal_list, free_list = self.detect(img, self.opt2val)
-        result = self.recognize(
+        return self.recognize(
             img_cv_grey,
             horizontal_list,
             free_list,
             self.opt2val,
         )
-
-        return result

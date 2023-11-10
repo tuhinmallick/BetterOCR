@@ -86,8 +86,7 @@ class Vgg16BN(torch.nn.Module):
         vgg_outputs = namedtuple(
             "VggOutputs", ["fc7", "relu5_3", "relu4_3", "relu3_2", "relu2_2"]
         )
-        out = vgg_outputs(h_fc7, h_relu5_3, h_relu4_3, h_relu3_2, h_relu2_2)
-        return out
+        return vgg_outputs(h_fc7, h_relu5_3, h_relu4_3, h_relu3_2, h_relu2_2)
 
 
 class VGGFeatureExtractor(nn.Module):
@@ -97,11 +96,11 @@ class VGGFeatureExtractor(nn.Module):
         super(VGGFeatureExtractor, self).__init__()
 
         self.output_channel = [
-            int(n_output_channels / 8),
-            int(n_output_channels / 4),
-            int(n_output_channels / 2),
+            n_output_channels // 8,
+            n_output_channels // 4,
+            n_output_channels // 2,
             n_output_channels,
-        ]  # [64, 128, 256, 512]
+        ]
         self.ConvNet = nn.Sequential(
             nn.Conv2d(n_input_channels, self.output_channel[0], 3, 1, 1),
             nn.ReLU(True),
@@ -163,8 +162,7 @@ class BidirectionalLSTM(nn.Module):
         recurrent, _ = self.rnn(
             x
         )  # batch_size x T x input_size -> batch_size x T x (2*hidden_size)
-        output = self.linear(recurrent)  # batch_size x T x output_size
-        return output
+        return self.linear(recurrent)
 
 
 class ResNetFeatureExtractor(nn.Module):
@@ -246,24 +244,24 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
 
         self.output_channel_blocks = [
-            int(n_output_channels / 4),
-            int(n_output_channels / 2),
+            n_output_channels // 4,
+            n_output_channels // 2,
             n_output_channels,
             n_output_channels,
         ]
 
-        self.inplanes = int(n_output_channels / 8)
+        self.inplanes = n_output_channels // 8
         self.conv0_1 = nn.Conv2d(
             n_input_channels,
-            int(n_output_channels / 16),
+            n_output_channels // 16,
             kernel_size=3,
             stride=1,
             padding=1,
             bias=False,
         )
-        self.bn0_1 = nn.BatchNorm2d(int(n_output_channels / 16))
+        self.bn0_1 = nn.BatchNorm2d(n_output_channels // 16)
         self.conv0_2 = nn.Conv2d(
-            int(n_output_channels / 16),
+            n_output_channels // 16,
             self.inplanes,
             kernel_size=3,
             stride=1,
@@ -366,12 +364,9 @@ class ResNet(nn.Module):
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers = [block(self.inplanes, planes, stride, downsample)]
         self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
-
+        layers.extend(block(self.inplanes, planes) for _ in range(1, blocks))
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -444,13 +439,11 @@ class TpsSpatialTransformerNetwork(nn.Module):
             [build_P_prime.size(0), self.I_r_size[0], self.I_r_size[1], 2]
         )
 
-        batch_I_r = F.grid_sample(
+        return F.grid_sample(
             batch_I,
             build_P_prime_reshape,
             padding_mode="border",
         )
-
-        return batch_I_r
 
 
 class LocalizationNetwork(nn.Module):
@@ -510,10 +503,9 @@ class LocalizationNetwork(nn.Module):
         """
         batch_size = batch_I.size(0)
         features = self.conv(batch_I).view(batch_size, -1)
-        batch_C_prime = self.localization_fc2(self.localization_fc1(features)).view(
+        return self.localization_fc2(self.localization_fc1(features)).view(
             batch_size, self.F, 2
         )
-        return batch_C_prime
 
 
 class GridGenerator(nn.Module):
@@ -556,8 +548,7 @@ class GridGenerator(nn.Module):
         ctrl_pts_y_bottom = np.ones(int(F / 2))
         ctrl_pts_top = np.stack([ctrl_pts_x, ctrl_pts_y_top], axis=1)
         ctrl_pts_bottom = np.stack([ctrl_pts_x, ctrl_pts_y_bottom], axis=1)
-        C = np.concatenate([ctrl_pts_top, ctrl_pts_bottom], axis=0)
-        return C  # F x 2
+        return np.concatenate([ctrl_pts_top, ctrl_pts_bottom], axis=0)
 
     def _build_inv_delta_C(self, F, C):
         """Return inv_delta_C which is needed to calculate T"""
@@ -578,8 +569,7 @@ class GridGenerator(nn.Module):
             ],
             axis=0,
         )
-        inv_delta_C = np.linalg.inv(delta_C)
-        return inv_delta_C  # F+3 x F+3
+        return np.linalg.inv(delta_C)
 
     def _build_P(self, I_r_width, I_r_height):
         I_r_grid_x = (
@@ -610,8 +600,7 @@ class GridGenerator(nn.Module):
             np.square(rbf_norm),
             np.log(rbf_norm + self.eps),
         )  # n x F
-        P_hat = np.concatenate([np.ones((n, 1)), P, rbf], axis=1)
-        return P_hat  # n x F+3
+        return np.concatenate([np.ones((n, 1)), P, rbf], axis=1)
 
     def build_P_prime(self, batch_C_prime):
         """Generate Grid from batch_C_prime [batch_size x F x 2]"""
@@ -625,5 +614,4 @@ class GridGenerator(nn.Module):
             batch_inv_delta_C,
             batch_C_prime_with_zeros,
         )  # batch_size x F+3 x 2
-        batch_P_prime = torch.bmm(batch_P_hat, batch_T)  # batch_size x n x 2
-        return batch_P_prime  # batch_size x n x 2
+        return torch.bmm(batch_P_hat, batch_T)

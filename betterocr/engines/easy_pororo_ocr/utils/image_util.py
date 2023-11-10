@@ -19,14 +19,7 @@ def plt_imshow(title="image", img=None, figsize=(8, 5)):
         img = cv2.imread(img)
 
     if type(img) == list:
-        if type(title) == list:
-            titles = title
-        else:
-            titles = []
-
-            for i in range(len(img)):
-                titles.append(title)
-
+        titles = title if type(title) == list else [title for _ in range(len(img))]
         for i in range(len(img)):
             if len(img[i].shape) <= 2:
                 rgbImg = cv2.cvtColor(img[i], cv2.COLOR_GRAY2RGB)
@@ -37,7 +30,6 @@ def plt_imshow(title="image", img=None, figsize=(8, 5)):
             plt.title(titles[i])
             plt.xticks([]), plt.yticks([])
 
-        plt.show()
     else:
         if len(img.shape) < 3:
             rgbImg = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
@@ -47,7 +39,8 @@ def plt_imshow(title="image", img=None, figsize=(8, 5)):
         plt.imshow(rgbImg)
         plt.title(title)
         plt.xticks([]), plt.yticks([])
-        plt.show()
+
+    plt.show()
 
 
 def put_text(image, text, x, y, color=(0, 255, 0), font_size=22):
@@ -69,6 +62,4 @@ def put_text(image, text, x, y, color=(0, 255, 0), font_size=22):
     draw.text((x, y), text, font=image_font, fill=color)
 
     numpy_image = np.array(image)
-    opencv_image = cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR)
-
-    return opencv_image
+    return cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR)

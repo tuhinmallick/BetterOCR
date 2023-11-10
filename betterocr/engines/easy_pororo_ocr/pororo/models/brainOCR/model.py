@@ -80,20 +80,18 @@ class Model(nn.Module):
             self.SequenceModeling_output = self.FeatureExtraction_output
 
         # Prediction
-        if Prediction == "CTC":
-            self.Prediction = nn.Linear(
-                self.SequenceModeling_output,
-                vocab_size,
-            )
-        elif Prediction == "Attn":
+        if Prediction == "Attn":
             self.Prediction = Attention(
                 self.SequenceModeling_output,
                 hidden_size,
                 vocab_size,
             )
-        elif Prediction == "Transformer":  # TODO
-            pass
-        else:
+        elif Prediction == "CTC":
+            self.Prediction = nn.Linear(
+                self.SequenceModeling_output,
+                vocab_size,
+            )
+        elif Prediction != "Transformer":
             raise Exception("Prediction is neither CTC or Attn")
 
     def forward(self, x: Tensor):
@@ -115,9 +113,4 @@ class Model(nn.Module):
         self.SequenceModeling.eval()
         contextual_feature = self.SequenceModeling(visual_feature)
 
-        # Prediction stage
-        prediction = self.Prediction(
-            contextual_feature.contiguous()
-        )  # (b, T, num_classes)
-
-        return prediction
+        return self.Prediction(contextual_feature.contiguous())
